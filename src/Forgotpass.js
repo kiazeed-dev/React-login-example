@@ -10,11 +10,11 @@ import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import Typography from "@mui/material/Typography";
 import Container from "@mui/material/Container";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import Tooltip from "@mui/material/Tooltip";
 import Select from "@mui/material/Select";
 import InputLabel from "@mui/material/InputLabel";
 import MenuItem from "@mui/material/MenuItem";
-import FormControl from '@mui/material/FormControl';
+import FormControl from "@mui/material/FormControl";
+import Modal from "@mui/material/Modal";
 
 function Copyright(props) {
   return (
@@ -34,30 +34,32 @@ function Copyright(props) {
   );
 }
 
+const style = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: 400,
+  bgcolor: "background.paper",
+  border: "2px solid #000",
+  boxShadow: 24,
+  p: 4,
+};
+
 const theme = createTheme();
 
-export default function SignUp() {
-  const [question, setQuestion] = React.useState("");
-
-  const handleChange = (event) => {
-    setQuestion(event.target.value);
-    console.log(question)
-  };
-
+export default function ForgetApply() {
   const handleSubmit = (event) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
 
     const jsondata = {
       email: data.get("email"),
-      password: data.get("password"),
-      fname: data.get("firstName"),
-      lname: data.get("lastName"),
       question: data.get("question"),
-      anwser: data.get("anwser")
+      anwser: data.get("anwser"),
     };
 
-    fetch("http://localhost:7777/api/register", {
+    fetch("http://localhost:7777/api/forget", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -67,17 +69,63 @@ export default function SignUp() {
       .then((response) => response.json())
       .then((data) => {
         if (data.status === "ok") {
-          alert("SignUp sucess");
-          window.location = "/";
+          localStorage.setItem("token-apply", data.token);
+          handleOpen();
+          alert("Apply successful");
         } else {
-          alert("SignUp failed");
-          console.log(data);
+          alert("Apply failed");
         }
       })
       .catch((error) => {
         console.error("Error:", error);
       });
   };
+
+  const handleSubmitNewPassword = (event) => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+
+    if (data.get("newPassword") !== data.get("confirmPassword")) {
+      return alert("Confirm Password is not correct!");
+    }
+
+    const jsondata = {
+      newpassword: data.get("newPassword"),
+      token: localStorage.getItem("token-apply"),
+    };
+
+    fetch("http://localhost:7777/api/change-password", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(jsondata),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.status === "ok") {
+          alert("Change Password successful");
+          localStorage.removeItem("token");
+          window.location = "/";
+        } else {
+          alert("Change Password failed");
+        }
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+      });
+  };
+
+  const [question, setQuestion] = React.useState("");
+
+  const handleChange = (event) => {
+    setQuestion(event.target.value);
+    console.log(question);
+  };
+
+  const [open, setOpen] = React.useState(false);
+  const handleOpen = () => setOpen(true);
+  const handleClose = () => setOpen(false);
 
   return (
     <ThemeProvider theme={theme}>
@@ -95,7 +143,7 @@ export default function SignUp() {
             <LockOutlinedIcon />
           </Avatar>
           <Typography component="h1" variant="h5">
-            Sign up
+            Reset Password
           </Typography>
           <Box
             component="form"
@@ -104,27 +152,6 @@ export default function SignUp() {
             sx={{ mt: 3 }}
           >
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  autoComplete="given-name"
-                  name="firstName"
-                  required
-                  fullWidth
-                  id="firstName"
-                  label="First Name"
-                  autoFocus
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  required
-                  fullWidth
-                  id="lastName"
-                  label="Last Name"
-                  name="lastName"
-                  autoComplete="family-name"
-                />
-              </Grid>
               <Grid item xs={12}>
                 <TextField
                   required
@@ -134,23 +161,6 @@ export default function SignUp() {
                   name="email"
                   autoComplete="email"
                 />
-              </Grid>
-              <Grid item xs={12}>
-                <Tooltip
-                  placement="bottom"
-                  title="Password should be at least 6 characters"
-                  arrow
-                >
-                  <TextField
-                    required
-                    fullWidth
-                    name="password"
-                    label="Password"
-                    type="password"
-                    id="password"
-                    autoComplete="new-password"
-                  />
-                </Tooltip>
               </Grid>
               <Grid item xs={12}>
                 <FormControl fullWidth>
@@ -192,17 +202,71 @@ export default function SignUp() {
               variant="contained"
               sx={{ mt: 3, mb: 2 }}
             >
-              Sign Up
+              Apply
             </Button>
             <Grid container justifyContent="flex-end">
               <Grid item>
                 <Link href="/" variant="body2">
-                  Already have an account? Sign in
+                  Are you remember password account? Sign in
                 </Link>
               </Grid>
             </Grid>
           </Box>
         </Box>
+        <Modal
+          open={open}
+          onClose={handleClose}
+          aria-labelledby="modal-modal-title"
+          aria-describedby="modal-modal-description"
+        >
+          <Box sx={style}>
+            <Typography component="h1" variant="h5">
+              Enter New Password
+            </Typography>
+            <Box
+              component="form"
+              noValidate
+              onSubmit={handleSubmitNewPassword}
+              sx={{ mt: 3 }}
+            >
+              <Typography component="h4" variant="h10">
+                Password should be at least 6 characters
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    name="newPassword"
+                    label="New Password"
+                    type="password"
+                    id="newPassword"
+                    autoComplete="new-password"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TextField
+                    required
+                    fullWidth
+                    name="confirmPassword"
+                    label="Confirm New Password"
+                    type="password"
+                    id="confirmPassword"
+                    autoComplete="confirmPassword"
+                  />
+                </Grid>
+              </Grid>
+              <Button
+                type="submit"
+                fullWidth
+                variant="contained"
+                sx={{ mt: 3, mb: 2 }}
+              >
+                Apply
+              </Button>
+            </Box>
+          </Box>
+        </Modal>
         <Copyright sx={{ mt: 5 }} />
       </Container>
     </ThemeProvider>
